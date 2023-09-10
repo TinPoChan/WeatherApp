@@ -1,19 +1,135 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, Dimensions } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, Dimensions, ScrollView, Image } from 'react-native';
+import { MaterialIcons, AntDesign } from '@expo/vector-icons';
+import * as Location from 'expo-location'; // Add this import
+
 
 export default function WeatherApp({ navigation }) {
   const [city, setCity] = useState('');
   const [weatherData, setWeatherData] = useState(null);
   const [locations, setLocations] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState(null);
 
-  //console.log(Dimensions.get('window').width);
+  const [isLoadingLocation, setLoadingLocation] = useState(false); // State for loading current location
+
+
+  // Function to fetch weather data by current location
+  const fetchWeatherDataByCurrentLocation = async () => {
+    try {
+      setLoadingLocation(true); // Set loading state to true
+
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status === 'granted') {
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+
+        // Reverse geocode the coordinates to get the location name
+        const locationData = await Location.reverseGeocodeAsync({ latitude, longitude });
+        const locationName = locationData.length > 0 ? locationData[0].city : '';
+
+        //console.log('Current location:', locationName);
+
+        setCity(locationName);
+
+      } else {
+        console.log('Permission to access location denied');
+      }
+    } catch (error) {
+      console.error('Error fetching weather data by current location:', error);
+    } finally {
+      setLoadingLocation(false); // Set loading state back to false when done
+    }
+  };
+
+  //console.log(Dimensions.get('window').width); 
+
+  // Get the currnet time in HH:MM format and round it to the nearest hour
+  function getCurrentTimeHHMM() {
+    const now = new Date();
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+
+    // If minutes are greater than 30, increment hours and set minutes to 0
+    if (minutes > 30) {
+      hours += 1;
+      minutes = 0;
+    } else {
+      // If minutes are less than or equal to 30, set minutes to 0
+      minutes = 0;
+    }
+
+    // Ensure hours and minutes are displayed as two digits
+    const formattedHours = String(hours).padStart(2, '0');
+    const formattedMinutes = String(minutes).padStart(2, '0');
+
+    // Combine hours and minutes in HH:MM format
+    return `${formattedHours}:${formattedMinutes}`;
+  }
+
+  function getCurrentTimeIndex() {
+    const currentTime = getCurrentTimeHHMM();
+    const timeArray = currentTime.split(':');
+    const currentHour = parseInt(timeArray[0]);
+
+    if (weatherData && weatherData.forecast && weatherData.forecast.forecastday[0]) {
+      return weatherData.forecast.forecastday[0].hour.findIndex((hour) => {
+        const hourArray = hour.time.split(' ')[1].split(':');
+        const hourValue = parseInt(hourArray[0]);
+        return hourValue >= currentHour;
+      });
+    }
+
+    return 0; // Default to the first hour if data is not available
+  }
+  // Function to render the 3-day forecast in rows
+  const renderThreeDayForecast = () => {
+    if (weatherData && weatherData.forecast && weatherData.forecast.forecastday.length >= 3) {
+      return (
+        <View style={styles.forecastContainer}>
+          {weatherData.forecast.forecastday.slice(0, 3).map((day, index) => (
+            <View key={index} style={styles.forecastDay}>
+              <Text style={styles.forecastDayName}>
+                {index === 0 ? 'Today' : getDayOfWeek(day.date)}
+              </Text>
+              <Image
+                source={{
+                  uri: day.day.condition.icon.startsWith('//')
+                    ? `https:${day.day.condition.icon}`
+                    : day.day.condition.icon,
+                }}
+                style={styles.forecastIcon}
+              />
+              <Text style={styles.forecastTemp}>
+                Low: {day.day.mintemp_c}°C, High: {day.day.maxtemp_c}°C
+              </Text>
+            </View>
+          ))}
+        </View>
+      );
+    }
+    return null;
+  };
+
+
+  // Function to calculate the day of the week for a given date
+  function getDayOfWeek(date) {
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayIndex = new Date(date).getDay();
+    return daysOfWeek[dayIndex];
+  }
 
   // Function to add a location to the list
   const addLocation = (location) => {
-    // Use the location name as the key and weatherData as the value
-    setLocations([...locations, { name: location, weatherData }]);
+    // Check if the location already exists in the list
+    const isLocationExists = locations.some((item) => item.name === location);
+
+    if (!isLocationExists) {
+      // Use the location name as the key and weatherData as the value
+      setLocations([...locations, { name: location, weatherData }]);
+    }
+
     setModalVisible(false); // Close the modal after adding a location
   };
 
@@ -26,12 +142,12 @@ export default function WeatherApp({ navigation }) {
   const fetchWeatherData = () => {
     // Replace 'YOUR_API_KEY' with your actual API key
     const apiKey = 'fcb737a86c7748f1b5d71408230709';
-    const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&day=1&aqi=no&alerts=no`;
+    const apiUrl = `https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=3&aqi=no&alerts=no`;
 
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
-        console.log(data);
+        console.log(data.forecast);
         setWeatherData(data);
         setModalVisible(true);
         console.log(isModalVisible);
@@ -58,6 +174,16 @@ export default function WeatherApp({ navigation }) {
           onPress={fetchWeatherData}
         >
           <MaterialIcons name="search" size={24} color="grey" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.locationButton}
+          onPress={isLoadingLocation ? null : fetchWeatherDataByCurrentLocation} // Disable the button while loading
+        >
+          {isLoadingLocation ? ( // Display loading icon when isLoadingLocation is true
+            <AntDesign name="clockcircleo" size={24} color="grey" />
+          ) : (
+            <MaterialIcons name="location-on" size={24} color="grey" />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -103,29 +229,66 @@ export default function WeatherApp({ navigation }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              Weather for {weatherData && weatherData.location.name}
-            </Text>
-            <Text>
-              Temperature: {weatherData && weatherData.current.temp_c}°C
-            </Text>
-            <Text>
-              Condition: {weatherData && weatherData.current.condition.text}
-            </Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() =>
-                addLocation(weatherData && weatherData.location.name)
-              }
-            >
-              <Text>Add</Text>
-            </TouchableOpacity>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >
-              <Text>Close</Text>
+              <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => addLocation(weatherData && weatherData.location.name)}
+            >
+              <Text style={styles.buttonText}>Add</Text>
+            </TouchableOpacity>
+            {/* Weather details */}
+            <View style={styles.weatherDetails}>
+              <View style={styles.column}>
+                <Text style={styles.modalTitle}>
+                  {weatherData && weatherData.location.name}
+                </Text>
+                <Text style={styles.modalCurrentTemp}>
+                  {weatherData && weatherData.current.temp_c}°C
+                </Text>
+                <Text style={styles.modalCondition}>
+                  {weatherData && weatherData.current.condition.text}
+                </Text>
+                <Text style={styles.modalHighLowTemp}>
+                  High: {weatherData && weatherData.forecast.forecastday[0].day.maxtemp_c}°C   Low: {weatherData && weatherData.forecast.forecastday[0].day.mintemp_c}°C
+                </Text>
+                <ScrollView
+                  horizontal
+                  contentContainerStyle={styles.hourlyForecast}
+                  showsHorizontalScrollIndicator={false}
+                >
+                  {weatherData &&
+                    weatherData.forecast.forecastday[0].hour
+                      .slice(getCurrentTimeIndex(), getCurrentTimeIndex() + 24)
+                      .map((hour, index) => (
+                        <View key={index} style={styles.hourContainer}>
+                          <Text style={styles.hourText}>
+                            {index === 0 ? 'Now' : hour.time.slice(-5)}
+                          </Text>
+                          <Image
+                            source={{
+                              uri: hour.condition.icon.startsWith('//')
+                                ? `https:${hour.condition.icon}`
+                                : hour.condition.icon,
+                            }}
+                            style={{ width: 24, height: 24 }}
+                          />
+                          <Text style={styles.hourTemp}>{hour.temp_c}°C</Text>
+                        </View>
+                      ))}
+                </ScrollView>
+                <View style={styles.forecastContainer}>
+                  {renderThreeDayForecast()}
+                </View>
+              </View>
+
+            </View>
+
+
           </View>
         </View>
       </Modal>
@@ -170,6 +333,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     marginRight: 10,
   },
+  locationButton: {
+    borderColor: 'grey',    // Border color
+    borderWidth: 3,         // Border width
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 15,
+    marginRight: 10,
+  },
   locationItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -185,7 +356,7 @@ const styles = StyleSheet.create({
     height: 120,
     position: 'relative',
   },
-  
+
   locationName: {
     fontSize: 25,
     fontWeight: 'bold',
@@ -193,14 +364,14 @@ const styles = StyleSheet.create({
     left: 5,
     bottom: 10,
   },
-  
+
   conditionText: {
     fontSize: 12,
     position: 'absolute',
     top: 21,
     left: 5,
   },
-  
+
   itemRight: {
     //alignItems: 'flex-end', // Align the content to the right
   },
@@ -236,6 +407,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
+    width: Dimensions.get('window').width, // Full width
+    height: Dimensions.get('window').height * 0.90, // 90% of screen height
     backgroundColor: 'white',
     padding: 20,
     borderRadius: 10,
@@ -243,24 +416,116 @@ const styles = StyleSheet.create({
     shadowColor: 'black',
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
+    marginTop: Dimensions.get('window').height * 0.1, // 10% margin at the top
+  },
+
+
+  closeButton: {
+    position: 'absolute', // Position the close button absolutely
+    top: 10, // Adjust the top position as needed
+    left: 10, // Adjust the left position as needed
+    padding: 10,
+
+    borderRadius: 5,
+  },
+
+  addButton: {
+    position: 'absolute', // Position the add button absolutely
+    top: 10, // Adjust the top position as needed
+    right: 10, // Adjust the right position as needed
+    padding: 10,
+
+    borderRadius: 5,
+
+  },
+
+  buttonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'black',
+  },
+
+  weatherDetails: {
+    flexDirection: 'row', // Arrange content horizontally
+    justifyContent: 'space-between', // Space evenly between columns
+    marginTop: 40, // Adjust the top margin as needed
+  },
+
+  column: {
+    flex: 1, // Equal flex to distribute space evenly
+    alignItems: 'center', // Center content horizontally in each column
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 40,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    marginTop: 30,
+  },
+  modalCurrentTemp: {
+    fontSize: 60,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-  addButton: {
-    backgroundColor: 'blue',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
+  modalCondition: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
-  closeButton: {
-    backgroundColor: 'red',
-    padding: 10,
-    borderRadius: 5,
+  modalHighLowTemp: {
+    fontSize: 15,
+    marginBottom: 10,
+  },
+  hourlyForecast: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 20,
+    marginBottom: 20,
+  },
+
+  hourContainer: {
+    alignItems: 'center',
+    marginRight: 20,
+  },
+
+  hourText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+
+  hourTemp: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  forecastContainer: {
+    flexDirection: 'column', // Change to column to display each day in a single line
+    justifyContent: 'space-between',
+    alignItems: 'left',
+    marginTop: 20,
+    paddingHorizontal: 16,
+  },
+
+  forecastDay: {
+    flexDirection: 'row', // Change to row to display each day in a single line
+    alignItems: 'center',
+    width: '100%', // Adjust the width as needed
+    justifyContent: 'space-between', // Space elements evenly
+  },
+
+  forecastDayName: {
+    marginRight: 10,
+    marginLeft: -10,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  forecastIcon: {
+    width: 50,
+    height: 50,
+  },
+
+  forecastTemp: {
+    marginRight: -30,
+    fontSize: 14,
   },
 });
+
