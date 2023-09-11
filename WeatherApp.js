@@ -19,6 +19,10 @@ export default function WeatherApp({ navigation }) {
   const [password, setPassword] = useState('');
   const [isLoginModalVisible, setLoginModalVisible] = useState(false);
   const [isSignupModalVisible, setSignupModalVisible] = useState(false);
+  const [preferredName, setPreferredName] = useState('');
+  const [greetingMessage, setGreetingMessage] = useState('');
+
+  //console.log(greetingMessage);
 
 
   // Function to handle user login
@@ -27,6 +31,12 @@ export default function WeatherApp({ navigation }) {
       await firebase.auth().signInWithEmailAndPassword(email, password);
       setLoginModalVisible(false); // Close the login modal
       setUser(firebase.auth().currentUser);
+
+      const user = firebase.auth().currentUser;
+      if (user && user.displayName) {
+        setGreetingMessage(`Hello ${user.displayName}!`);
+      }
+      //console.log(firebase.auth().currentUser.displayName);
     } catch (error) {
       console.error('Error logging in:', error);
     }
@@ -35,22 +45,28 @@ export default function WeatherApp({ navigation }) {
   // Function to handle user sign-up
   const handleSignup = async () => {
     try {
-      console.log(email, password);
       await firebase.auth().createUserWithEmailAndPassword(email, password);
       console.log('User account created & signed in!');
+      
+      // Update the user's profile with the preferred name
+      await firebase.auth().currentUser.updateProfile({
+        displayName: preferredName,
+      });
+      
       setSignupModalVisible(false); // Close the sign-up modal
       setUser(firebase.auth().currentUser);
-      console.log(user);
     } catch (error) {
       console.error('Error signing up:', error);
     }
   };
+  
 
   // Function to handle user logout
   const handleLogout = async () => {
     try {
       await firebase.auth().signOut();
       setUser(null);
+      setPreferredName('');
     } catch (error) {
       console.error('Error logging out:', error);
     }
@@ -202,12 +218,12 @@ export default function WeatherApp({ navigation }) {
   return (
     <View style={styles.container}>
       {user ? (
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          <Text>Logout</Text>
-        </TouchableOpacity>
+          <View style={styles.greetingContainer}>
+          <Text style={styles.greetingText}>{greetingMessage}</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text>Logout</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <View style={styles.loginButtonsContainer}>
           <TouchableOpacity
@@ -259,38 +275,45 @@ export default function WeatherApp({ navigation }) {
         </View>
       </Modal>
 
-            {/* Signup Modal */}
-            <Modal
-        visible={isSignupModalVisible}
-        animationType="slide"
-        transparent={true}
+{/* Signup Modal */}
+<Modal
+  visible={isSignupModalVisible}
+  animationType="slide"
+  transparent={true}
+>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Sign Up</Text>
+      <TextInput
+        style={styles.loginInput}
+        placeholder="Email"
+        value={email}
+        onChangeText={(text) => setEmail(text)}
+      />
+      <TextInput
+        style={styles.loginInput}
+        placeholder="Password"
+        secureTextEntry
+        value={password}
+        onChangeText={(text) => setPassword(text)}
+      />
+      <TextInput
+        style={styles.loginInput}
+        placeholder="Preferred Name"
+        value={preferredName}
+        onChangeText={(text) => setPreferredName(text)}
+      />
+      <Button title="Sign Up" onPress={handleSignup} />
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setSignupModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Sign Up</Text>
-            <TextInput
-              style={styles.loginInput}
-              placeholder="Email"
-              value={email}
-              onChangeText={(text) => setEmail(text)}
-            />
-            <TextInput
-              style={styles.loginInput}
-              placeholder="Password"
-              secureTextEntry
-              value={password}
-              onChangeText={(text) => setPassword(text)}
-            />
-            <Button title="Sign Up" onPress={handleSignup} />
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setSignupModalVisible(false)}
-            >
-              <Text style={styles.buttonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+        <Text style={styles.buttonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
 
       {/* Search box */}
       <View style={styles.inputContainer}>
@@ -690,14 +713,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   logoutButton: {
-    position: 'absolute', // Position the close button absolutely
-    top: 100, // Adjust the top position as needed
-    right: 20,
+    // position: 'absolute', // Position the close button absolutely
+    // top: 100, // Adjust the top position as needed
+    // right: 20,
     borderColor: 'grey',    // Border color
     borderWidth: 3,         // Border width
     borderRadius: 10,
     paddingVertical: 2,
     paddingHorizontal: 15,
+    marginLeft: 20,
+  },
+  greetingContainer: {
+    position: 'absolute', // Position the close button absolutely
+    top: 100, // Adjust the top position as needed
+    right: 20,
+  },
+  greetingText: {
+    position: 'absolute', // Position the close button absolutely
+    fontSize: 20,
+    fontWeight: 'bold',
+    top: -40,
+    right: -5,
   },
 });
 
