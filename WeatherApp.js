@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, Dimensions, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, Dimensions, ScrollView, Image, Button } from 'react-native';
 import { MaterialIcons, AntDesign } from '@expo/vector-icons';
 import * as Location from 'expo-location'; // Add this import
+import firebase from './firebaseConfig';
 
 
 export default function WeatherApp({ navigation }) {
@@ -13,6 +14,47 @@ export default function WeatherApp({ navigation }) {
 
   const [isLoadingLocation, setLoadingLocation] = useState(false); // State for loading current location
 
+  const [user, setUser] = useState(null); // User state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoginModalVisible, setLoginModalVisible] = useState(false);
+  const [isSignupModalVisible, setSignupModalVisible] = useState(false);
+
+
+  // Function to handle user login
+  const handleLogin = async () => {
+    try {
+      await firebase.auth().signInWithEmailAndPassword(email, password);
+      setLoginModalVisible(false); // Close the login modal
+      setUser(firebase.auth().currentUser);
+    } catch (error) {
+      console.error('Error logging in:', error);
+    }
+  };
+
+  // Function to handle user sign-up
+  const handleSignup = async () => {
+    try {
+      console.log(email, password);
+      await firebase.auth().createUserWithEmailAndPassword(email, password);
+      console.log('User account created & signed in!');
+      setSignupModalVisible(false); // Close the sign-up modal
+      setUser(firebase.auth().currentUser);
+      console.log(user);
+    } catch (error) {
+      console.error('Error signing up:', error);
+    }
+  };
+
+  // Function to handle user logout
+  const handleLogout = async () => {
+    try {
+      await firebase.auth().signOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   // Function to fetch weather data by current location
   const fetchWeatherDataByCurrentLocation = async () => {
@@ -159,7 +201,96 @@ export default function WeatherApp({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {user ? (
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          <Text>Logout</Text>
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.loginButtonsContainer}>
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={() => setLoginModalVisible(true)}
+          >
+            <Text>Login</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.signupButton}
+            onPress={() => setSignupModalVisible(true)}
+          >
+            <Text>Sign Up</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       <Text style={styles.title}>Weather App</Text>
+
+      {/* Login Modal */}
+      <Modal
+        visible={isLoginModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Login</Text>
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Email"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
+            />
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={(text) => setPassword(text)}
+            />
+            <Button title="Login" onPress={handleLogin} />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setLoginModalVisible(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+            {/* Signup Modal */}
+            <Modal
+        visible={isSignupModalVisible}
+        animationType="slide"
+        transparent={true}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sign Up</Text>
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Email"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
+            />
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={(text) => setPassword(text)}
+            />
+            <Button title="Sign Up" onPress={handleSignup} />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSignupModalVisible(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Search box */}
       <View style={styles.inputContainer}>
@@ -526,6 +657,47 @@ const styles = StyleSheet.create({
   forecastTemp: {
     marginRight: -30,
     fontSize: 14,
+  },
+  loginButton: {
+    position: 'absolute', // Position the close button absolutely
+    top: 100, // Adjust the top position as needed
+    right: -180,
+    borderColor: 'grey',    // Border color
+    borderWidth: 3,         // Border width
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 15,
+  },
+  signupButton: {
+    position: 'absolute', // Position the close button absolutely
+    top: 60, // Adjust the top position as needed
+    right: -180,
+    borderColor: 'grey',    // Border color
+    borderWidth: 3,         // Border width
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 15,
+  },
+  loginInput: {
+    height: 40,
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginTop: 10,
+    marginRight: 10,
+    marginLeft: 20,
+    marginBottom: 10,
+  },
+  logoutButton: {
+    position: 'absolute', // Position the close button absolutely
+    top: 100, // Adjust the top position as needed
+    right: 20,
+    borderColor: 'grey',    // Border color
+    borderWidth: 3,         // Border width
+    borderRadius: 10,
+    paddingVertical: 2,
+    paddingHorizontal: 15,
   },
 });
 

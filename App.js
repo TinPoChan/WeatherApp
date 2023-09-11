@@ -9,6 +9,8 @@ import Icon from 'react-native-vector-icons/FontAwesome'; // For weather icons (
 import WeatherDetailScreen from './WeatherDetailScreen';
 import WeatherApp from './WeatherApp';
 
+import firebase from './firebaseConfig';
+
 const Stack = createStackNavigator();
 
 export default function App() {
