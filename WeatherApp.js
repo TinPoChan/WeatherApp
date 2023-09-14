@@ -1,3 +1,4 @@
+import 'react-native-gesture-handler';
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, Dimensions, ScrollView, Image, Button } from 'react-native';
 import { MaterialIcons, AntDesign } from '@expo/vector-icons';
