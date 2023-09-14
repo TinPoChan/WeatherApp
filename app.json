@@ -2,6 +2,7 @@
   "expo": {
     "name": "WeatherApp",
     "slug": "WeatherApp",
+    "privary": "public",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,16 +16,30 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ericchantinpo.WeatherApp"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ericchantinpo.WeatherApp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3d2eb477-b3cc-47a1-8454-bace517a350a"
+      }
+    },
+    "owner": "ericchantinpo",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/3d2eb477-b3cc-47a1-8454-bace517a350a"
     }
   }
 }
