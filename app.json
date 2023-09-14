@@ -44,7 +44,7 @@
     },
     "owner": "ericchantinpo",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "sdkVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/3d2eb477-b3cc-47a1-8454-bace517a350a"
