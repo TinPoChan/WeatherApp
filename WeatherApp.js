@@ -24,6 +24,34 @@ export default function WeatherApp({ navigation }) {
 
   //console.log(greetingMessage);
 
+  // Function to get the index for the current time or the next available hour
+  function getNext24HoursIndex() {
+    const currentTime = getCurrentTimeHHMM();
+    const timeArray = currentTime.split(':');
+    const currentHour = parseInt(timeArray[0]);
+
+    if (weatherData && weatherData.forecast && weatherData.forecast.forecastday[0]) {
+      const currentDayHours = weatherData.forecast.forecastday[0].hour;
+      const nextDayHours = weatherData.forecast.forecastday[1].hour;
+      
+      // Find the index of the next available hour in the current or next day
+      for (let i = 0; i < currentDayHours.length; i++) {
+        const hourArray = currentDayHours[i].time.split(' ')[1].split(':');
+        const hourValue = parseInt(hourArray[0]);
+
+        if (hourValue >= currentHour) {
+          return i;
+        }
+      }
+      
+      // If no available hour is found in the current day, continue to the next day
+      for (let i = 0; i < nextDayHours.length; i++) {
+        return currentDayHours.length + i;
+      }
+    }
+
+    return 0; // Default to the first hour if data is not available
+  }
 
   // Function to handle user login
   const handleLogin = async () => {
@@ -47,19 +75,19 @@ export default function WeatherApp({ navigation }) {
     try {
       await firebase.auth().createUserWithEmailAndPassword(email, password);
       console.log('User account created & signed in!');
-      
+
       // Update the user's profile with the preferred name
       await firebase.auth().currentUser.updateProfile({
         displayName: preferredName,
       });
-      
+
       setSignupModalVisible(false); // Close the sign-up modal
       setUser(firebase.auth().currentUser);
     } catch (error) {
       console.error('Error signing up:', error);
     }
   };
-  
+
 
   // Function to handle user logout
   const handleLogout = async () => {
@@ -170,7 +198,6 @@ export default function WeatherApp({ navigation }) {
     return null;
   };
 
-
   // Function to calculate the day of the week for a given date
   function getDayOfWeek(date) {
     const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -205,10 +232,10 @@ export default function WeatherApp({ navigation }) {
     fetch(apiUrl)
       .then(response => response.json())
       .then(data => {
-        console.log(data.forecast);
+        // console.log(data.forecast);
         setWeatherData(data);
         setModalVisible(true);
-        console.log(isModalVisible);
+        // console.log(isModalVisible);
       })
       .catch(error => {
         console.error('Error fetching weather data:', error);
@@ -218,7 +245,7 @@ export default function WeatherApp({ navigation }) {
   return (
     <View style={styles.container}>
       {user ? (
-          <View style={styles.greetingContainer}>
+        <View style={styles.greetingContainer}>
           <Text style={styles.greetingText}>{greetingMessage}</Text>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Text>Logout</Text>
@@ -275,44 +302,44 @@ export default function WeatherApp({ navigation }) {
         </View>
       </Modal>
 
-{/* Signup Modal */}
-<Modal
-  visible={isSignupModalVisible}
-  animationType="slide"
-  transparent={true}
->
-  <View style={styles.modalContainer}>
-    <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Sign Up</Text>
-      <TextInput
-        style={styles.loginInput}
-        placeholder="Email"
-        value={email}
-        onChangeText={(text) => setEmail(text)}
-      />
-      <TextInput
-        style={styles.loginInput}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={(text) => setPassword(text)}
-      />
-      <TextInput
-        style={styles.loginInput}
-        placeholder="Preferred Name"
-        value={preferredName}
-        onChangeText={(text) => setPreferredName(text)}
-      />
-      <Button title="Sign Up" onPress={handleSignup} />
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => setSignupModalVisible(false)}
+      {/* Signup Modal */}
+      <Modal
+        visible={isSignupModalVisible}
+        animationType="slide"
+        transparent={true}
       >
-        <Text style={styles.buttonText}>Close</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</Modal>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sign Up</Text>
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Email"
+              value={email}
+              onChangeText={(text) => setEmail(text)}
+            />
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={(text) => setPassword(text)}
+            />
+            <TextInput
+              style={styles.loginInput}
+              placeholder="Preferred Name"
+              value={preferredName}
+              onChangeText={(text) => setPreferredName(text)}
+            />
+            <Button title="Sign Up" onPress={handleSignup} />
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSignupModalVisible(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
 
       {/* Search box */}
@@ -411,35 +438,35 @@ export default function WeatherApp({ navigation }) {
                   High: {weatherData && weatherData.forecast.forecastday[0].day.maxtemp_c}°C   Low: {weatherData && weatherData.forecast.forecastday[0].day.mintemp_c}°C
                 </Text>
                 <ScrollView
-                  horizontal
-                  contentContainerStyle={styles.hourlyForecast}
-                  showsHorizontalScrollIndicator={false}
-                >
-                  {weatherData &&
-                    weatherData.forecast.forecastday[0].hour
-                      .slice(getCurrentTimeIndex(), getCurrentTimeIndex() + 24)
-                      .map((hour, index) => (
-                        <View key={index} style={styles.hourContainer}>
-                          <Text style={styles.hourText}>
-                            {index === 0 ? 'Now' : hour.time.slice(-5)}
-                          </Text>
-                          <Image
-                            source={{
-                              uri: hour.condition.icon.startsWith('//')
-                                ? `https:${hour.condition.icon}`
-                                : hour.condition.icon,
-                            }}
-                            style={{ width: 24, height: 24 }}
-                          />
-                          <Text style={styles.hourTemp}>{hour.temp_c}°C</Text>
-                        </View>
-                      ))}
-                </ScrollView>
+                horizontal
+                contentContainerStyle={styles.hourlyForecast}
+                showsHorizontalScrollIndicator={false}
+              >
+                {weatherData &&
+                  weatherData.forecast.forecastday
+                    .reduce((acc, day) => acc.concat(day.hour), []) // Combine all hours from all forecast days
+                    .slice(getNext24HoursIndex(), getNext24HoursIndex() + 24)
+                    .map((hour, index) => (
+                      <View key={index} style={styles.hourContainer}>
+                        <Text style={styles.hourText}>
+                          {index === 0 ? 'Now' : hour.time.slice(-5)}
+                        </Text>
+                        <Image
+                          source={{
+                            uri: hour.condition.icon.startsWith('//')
+                              ? `https:${hour.condition.icon}`
+                              : hour.condition.icon,
+                          }}
+                          style={{ width: 24, height: 24 }}
+                        />
+                        <Text style={styles.hourTemp}>{hour.temp_c}°C</Text>
+                      </View>
+                    ))}
+              </ScrollView>
                 <View style={styles.forecastContainer}>
                   {renderThreeDayForecast()}
                 </View>
               </View>
-
             </View>
 
 
@@ -735,5 +762,7 @@ const styles = StyleSheet.create({
     top: -40,
     right: -5,
   },
+
 });
+
 
