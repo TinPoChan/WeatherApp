@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, FlatList, Modal, Dimensions, ScrollView, Image, Button } from 'react-native';
 import { MaterialIcons, AntDesign } from '@expo/vector-icons';
 import * as Location from 'expo-location'; // Add this import
-import firebase from './firebaseConfig';
+// import firebase from './firebaseConfig';
 
 
 export default function WeatherApp({ navigation }) {
@@ -54,52 +54,52 @@ export default function WeatherApp({ navigation }) {
     return 0; // Default to the first hour if data is not available
   }
 
-  // Function to handle user login
-  const handleLogin = async () => {
-    try {
-      await firebase.auth().signInWithEmailAndPassword(email, password);
-      setLoginModalVisible(false); // Close the login modal
-      setUser(firebase.auth().currentUser);
+  // // Function to handle user login
+  // const handleLogin = async () => {
+  //   try {
+  //     await firebase.auth().signInWithEmailAndPassword(email, password);
+  //     setLoginModalVisible(false); // Close the login modal
+  //     setUser(firebase.auth().currentUser);
 
-      const user = firebase.auth().currentUser;
-      if (user && user.displayName) {
-        setGreetingMessage(`Hello ${user.displayName}!`);
-      }
-      //console.log(firebase.auth().currentUser.displayName);
-    } catch (error) {
-      console.error('Error logging in:', error);
-    }
-  };
+  //     const user = firebase.auth().currentUser;
+  //     if (user && user.displayName) {
+  //       setGreetingMessage(`Hello ${user.displayName}!`);
+  //     }
+  //     //console.log(firebase.auth().currentUser.displayName);
+  //   } catch (error) {
+  //     console.error('Error logging in:', error);
+  //   }
+  // };
 
-  // Function to handle user sign-up
-  const handleSignup = async () => {
-    try {
-      await firebase.auth().createUserWithEmailAndPassword(email, password);
-      console.log('User account created & signed in!');
+  // // Function to handle user sign-up
+  // const handleSignup = async () => {
+  //   try {
+  //     await firebase.auth().createUserWithEmailAndPassword(email, password);
+  //     console.log('User account created & signed in!');
 
-      // Update the user's profile with the preferred name
-      await firebase.auth().currentUser.updateProfile({
-        displayName: preferredName,
-      });
+  //     // Update the user's profile with the preferred name
+  //     await firebase.auth().currentUser.updateProfile({
+  //       displayName: preferredName,
+  //     });
 
-      setSignupModalVisible(false); // Close the sign-up modal
-      setUser(firebase.auth().currentUser);
-    } catch (error) {
-      console.error('Error signing up:', error);
-    }
-  };
+  //     setSignupModalVisible(false); // Close the sign-up modal
+  //     setUser(firebase.auth().currentUser);
+  //   } catch (error) {
+  //     console.error('Error signing up:', error);
+  //   }
+  // };
 
 
-  // Function to handle user logout
-  const handleLogout = async () => {
-    try {
-      await firebase.auth().signOut();
-      setUser(null);
-      setPreferredName('');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
-  };
+  // // Function to handle user logout
+  // const handleLogout = async () => {
+  //   try {
+  //     await firebase.auth().signOut();
+  //     setUser(null);
+  //     setPreferredName('');
+  //   } catch (error) {
+  //     console.error('Error logging out:', error);
+  //   }
+  // };
 
   // Function to fetch weather data by current location
   const fetchWeatherDataByCurrentLocation = async () => {
@@ -245,7 +245,7 @@ export default function WeatherApp({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {user ? (
+      {/* {user ? (
         <View style={styles.greetingContainer}>
           <Text style={styles.greetingText}>{greetingMessage}</Text>
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -267,10 +267,10 @@ export default function WeatherApp({ navigation }) {
             <Text>Sign Up</Text>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
       <Text style={styles.title}>Weather App</Text>
 
-      {/* Login Modal */}
+      {/* Login Modal
       <Modal
         visible={isLoginModalVisible}
         animationType="slide"
@@ -301,9 +301,9 @@ export default function WeatherApp({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
 
-      {/* Signup Modal */}
+      {/* Signup Modal
       <Modal
         visible={isSignupModalVisible}
         animationType="slide"
@@ -340,7 +340,7 @@ export default function WeatherApp({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
 
 
       {/* Search box */}
